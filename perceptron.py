@@ -1,15 +1,21 @@
 class PerceptronAND:
-    def __init__(self, weight, alfa, threshold, with_bias):
+    def __init__(self, weight, alfa, threshold, with_bias, down_input):
         self.weight = weight
         self.threshold = threshold
         self.alfa = alfa
         self.with_bias = with_bias
+        self.down_input = down_input
 
-    def classify(self, input_data):  # input_data = [x1, x2]
-        z = sum([a * b for a, b in zip(self.weight, input_data)])
+    def classify(self, input_data, with_bias = False):  # input_data = [x1, x2]
+        if with_bias:
+            input_vector = [1] + input_data
+        else:
+            input_vector = input_data
+
+        z = sum([a * b for a, b in zip(self.weight, input_vector)])
         if z > self.threshold:
             return 1
-        return 0
+        return self.down_input
 
     def teach_me(self, learning_data):
         if self.with_bias:
