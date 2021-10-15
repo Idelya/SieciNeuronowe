@@ -1,46 +1,42 @@
-class PerceptronAND:
-    def __init__(self, weight, alfa, threshold, with_bias, down_input):
+import numpy
+
+class Adaline:
+    def __init__(self, weight, learning_rate, permissible_error, threshold, down_input):
         self.weight = weight
+        self.learning_rate = learning_rate
+        self.permissible_error = permissible_error
         self.threshold = threshold
-        self.alfa = alfa
-        self.with_bias = with_bias
         self.down_input = down_input
 
-    def classify(self, input_data, with_bias = False):  # input_data = [x1, x2]
-        if with_bias:
-            input_vector = [1] + input_data
-        else:
-            input_vector = input_data
+    def classify(self, input_data):
+        input_vector = numpy.insert(numpy.array(input_data), 0, 1, axis=0)
+        z = self.get_z(input_vector)
+        return self.get_threshold(z)
 
-        z = sum([a * b for a, b in zip(self.weight, input_vector)])
+    def get_z(self, input_data):  # input_data = [x1, x2]
+        z = numpy.array(input_data).dot(self.weight)
+        return z
+
+    def get_threshold(self, z):
         if z > self.threshold:
             return 1
         return self.down_input
 
     def teach_me(self, learning_data):
-        if self.with_bias:
-            test_data = list(([1] + data[0], data[1]) for data in learning_data)
-        else:
-            test_data = learning_data
+        test_data = list((numpy.insert(data[0], 0, 1, axis=0), data[1]) for data in learning_data)
         check = False
         epoka = 0
         while not check: #epoka
             print(epoka)
-            check = True
-            test_data_id = 0
+            mistake_sum = 0
             for data in test_data:
-                classified = (self.classify(data[0]), data[1])
-                if not classified[1] == classified[0]:
-                    check = False
-                    mistake = classified[1] - classified[0]
-                    weight_as_list = list(self.weight)
-                    new_weights = list()
-                    for index in range(len(weight_as_list)):
-                            current_weight = weight_as_list[index]
-                            input_value = test_data[test_data_id][0][index]
-                            new_weight = (current_weight + self.alfa * mistake * input_value)
-                            new_weights.append(new_weight)
-                    self.weight = new_weights
-                test_data_id = test_data_id + 1
+                z = self.get_z(data[0])
+                mistake = pow(data[1] - z, 2)
+                mistake_sum = mistake_sum + mistake
+                for index in range(len(self.weight)):
+                    self.weight[index] = self.weight[index] + 2 * self.learning_rate * (data[1] - z) * data[0][index]
+            if mistake_sum/len(learning_data) < self.permissible_error:
+                check = True
             epoka = 1 + epoka
         print(self.weight)
+        print(mistake_sum/len(learning_data))
