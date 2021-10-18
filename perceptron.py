@@ -44,3 +44,4 @@ class PerceptronAND:
                 test_data_id = test_data_id + 1
             epoka = 1 + epoka
         print(self.weight)
+        return epoka
