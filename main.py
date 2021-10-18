@@ -18,7 +18,7 @@ learnig_data = [
     (numpy.array([0.1, -0.1]), down_input),
 ]
 
-random_range = -1
+random_range = 0.5
 
 
 def generate_random(a, b, n):
@@ -29,17 +29,31 @@ def generate_random(a, b, n):
 
 
 def run():
-    weights = generate_random(-1 * random_range, random_range, 3)
-    perceptron = Adaline(weights, 0.03, 0.28, 0,
-                         down_input)  # weight, learning_rate, permissible_error, threshold, down_input):
-    perceptron.teach_me(learnig_data)
-    print(perceptron.classify(numpy.array([1, 1])))
-    print(perceptron.classify(numpy.array([0, 0])))
-    print(perceptron.classify(numpy.array([1, 0])))
-    print(perceptron.classify(numpy.array([0, 1])))
-    print(perceptron.classify(numpy.array([0.9, 0.9])))
-    print(perceptron.classify(numpy.array([0.1, 0.9])))
-    print(perceptron.classify(numpy.array([0.9, 0.1])))
+    n = 100
+    epok = 0
+    correctness = 0
+    for i in range(n):
+        print(i)
+
+        weights = generate_random(-1 * random_range, random_range, 3)
+        perceptron = Adaline(weights, 0.05, 0.6, 0,
+                             down_input)  # weight, learning_rate, permissible_error, threshold, down_input):
+        epok = perceptron.teach_me(learnig_data) + epok
+        if (perceptron.classify(numpy.array([1, 1])) == 1):
+            correctness = correctness + 1
+
+        if (perceptron.classify(numpy.array([1, 0])) == -1):
+            correctness = correctness + 1
+
+        if (perceptron.classify(numpy.array([0, 1])) == -1):
+            correctness = correctness + 1
+
+        if (perceptron.classify(numpy.array([0, 0])) == -1):
+            correctness = correctness + 1
+
+    print("result\n")
+    print(epok / n)
+    print(correctness / (n * 4))
 
 
 if __name__ == '__main__':

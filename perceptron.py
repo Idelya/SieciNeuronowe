@@ -40,3 +40,4 @@ class Adaline:
             epoka = 1 + epoka
         print(self.weight)
         print(mistake_sum/len(learning_data))
+        return epoka
