@@ -1,16 +1,33 @@
-# This is a sample Python script.
+import random
+from data import getData
+import numpy as np
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from net import Net
+
+learnig_data = [
+    np.array([1, 1]),
+    np.array([1.1, 0.99]),
+    np.array([0.89, 0.99]),
+    np.array([1.123, 0.97]),
+    np.array([0, 0]),
+]
+
+HIDDEN_LAYERS_CONFIG = [
+    {
+        "l": 3,
+        "activationFun": lambda x: x,
+    }
+]
+
+def run():
+    for p in learnig_data:
+        net = Net(p, HIDDEN_LAYERS_CONFIG)
+        net.configLayers(lambda x: x)
+        print(net.forward())
+
+    #(train_X, train_y) = getData()
+    #print(train_X[0][0])
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    run()
