@@ -8,7 +8,7 @@ class Neuron:
         self.y = y
 
     def generateWeight(self, l):
-        self.weight = generate_random(-0.1, 0.1)
+        self.weight = generate_random(-0.1, 0.1, l)
 
     def get_z(self, data):
         return sum(data)
@@ -17,5 +17,7 @@ class Neuron:
         return self.activationFun(z)
 
     def get_res(self, data):
+        if self.isBias:
+
         self.y = self.get_a(self.get_z(data))
         return self.y
