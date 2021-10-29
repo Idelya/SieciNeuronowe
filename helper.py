@@ -13,19 +13,31 @@ def sig(z):
     return 1 / (1 + numpy.power(numpy.e, -z))
 
 
-def sig_vec(z):
+def sig_derivative(z):
+    return (numpy.power(numpy.e, z))/(numpy.power((numpy.power(numpy.e, z) + 1), 2))
+
+
+def sig_vec(z, derivative=False):
+    fun = sig
+    if derivative:
+        fun = sig_derivative
     for i in range(len(z)):
-        z[i] = sig(z[i])
+        z[i] = fun(z[i])
     return z
 
 
 def tanh(z):
     return numpy.tanh(z)
 
+def tanh_derivative(z):
+    return 1 - numpy.tanh(z) ** 2
 
-def tanh_vec(z):
+def tanh_vec(z, derivative=False):
+    fun = tanh
+    if derivative:
+        fun = tanh_derivative
     for i in range(len(z)):
-        z[i] = tanh(z[i])
+        z[i] = fun(z[i])
     return z
 
 
@@ -36,9 +48,19 @@ def relu(z):
         return z
 
 
-def relu_vec(z):
+def relu_derivative(z):
+    if z < 0:
+        return 0
+    else:
+        return 1
+
+
+def relu_vec(z, derivative=False):
+    fun = relu
+    if derivative:
+        fun = relu_derivative
     for i in range(len(z)):
-        z[i] = relu(z[i])
+        z[i] = fun(z[i])
     return z
 
 
