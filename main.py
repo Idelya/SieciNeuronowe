@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from keras.utils import np_utils
 
 from data import getData
 from helper import relu, softmax, sig, tanh, sig_vec, tanh_vec, relu_vec
@@ -22,11 +23,14 @@ HIDDEN_LAYERS_CONFIG = [
 ]
 
 def run():
-    net = Net(0.1)
+    net = Net(0.1, epok=20)#alfa
     net.configLayers(784, HIDDEN_LAYERS_CONFIG, relu_vec, softmax, 10)
 
-    (train_X, train_y) = getData()
-    net.teach_me((train_X, train_y))
+    (train_X, train_y), (test_X, test_Y) = getData()
+    train_Y_binary = np_utils.to_categorical(train_y)
+    net.teach_me((train_X, train_Y_binary))
+
+    net.test_mlp(test_X[0:10], np_utils.to_categorical(test_Y[0:10]))
 
 
 

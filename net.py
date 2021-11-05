@@ -7,25 +7,22 @@ from Layer import Layer
 from helper import modify_train_y
 
 class Net:
-    def __init__(self, alpha):
+    def __init__(self, alpha, epok=10):
         self.layers = []
         self.alpha = alpha
+        self.epok = epok
 
     def configLayers(self, vector_length, config_layer, start_fun, exit_fun, class_amount):
         self.layers.append(Layer(vector_length, config_layer[0]["l"], start_fun))
         for i in range(len(config_layer)):
             outputs_length = class_amount
-            activation_fun = exit_fun
             if i + 1 < len(config_layer):
                 outputs_length = config_layer[i + 1]["l"]
                 activation_fun = config_layer[i]["activationFun"]
             self.layers.append(Layer(config_layer[i]["l"], outputs_length, activation_fun))
 
     def loss(self, y, teaching_data):
-        sum = 0
-        for i in range(len(y)):
-            sum = sum + (-1 * np.log(y)*teaching_data[i])
-        return sum/len(y)
+        return -np.mean(teaching_data * np.log(y.T + 1e-8))
 
     def softmax_grad(self, y, teaching_data):
         return -1*(y-teaching_data)
@@ -42,20 +39,44 @@ class Net:
         for layer in self.layers:
             z = layer.count_z(inputs)
             inputs = layer.get_a(z)
-        print(self.loss(inputs, output_vector))
-        cost = self.softmax_grad(inputs, output_vector)*self.layers[len(self.layers)-1].a.T
+        sum_loss = self.loss(inputs, output_vector)
+
+        #cost = np.dot(self.layers[len(self.layers)-1].a.T, self.softmax_grad(inputs, output_vector))
+        #cost = mse_prime(inputs, output_vector)
+        cost = self.softmax_grad(inputs, output_vector)
         id=0
         for layer in reversed(self.layers):
-            if id!=0:
-                cost = layer.get_cost(cost)
-                layer.upadte_weights(self.alpha, m)
+            if id > 0:
+                cost = layer.get_cost_with_weight(cost)
+                layer.upadte_weights(self.alpha)
+            id = id + 1
+        return sum_loss
 
     def teach_me(self, learning_data):
-        for i in range(100):
+        for i in range(self.epok):
+            sum_loss = 0
             for k in range(len(learning_data[0])):
                 x = np.ndarray.flatten(learning_data[0][k])
-                self.sample(x, modify_train_y(learning_data[1][k]), len(learning_data))
+                sum_loss += self.sample(x, learning_data[1][k], len(learning_data))
+
+            print(i, sum_loss/len(learning_data[0]))
+
+    def test_mlp(self, test_data_X, test_data_Y):
+        correct=0
+        for i in range(len(test_data_X)):
+            x = np.ndarray.flatten(test_data_X[i])
+            predict = self.forward(x)
+            print(self.forward(x), test_data_Y[i])
+            if np.argmax(predict) == np.argmax(test_data_Y[i]):
+                correct = correct + 1
+        print(correct/len(test_data_Y))
 
 
+def mse(res, y):
+    return np.mean(np.power(res-y, 2))
+
+
+def mse_prime(res, y):
+    return 2*(y-res)/res.size
 
 
