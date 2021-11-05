@@ -4,6 +4,7 @@ import numpy as np
 
 from Layer import Layer
 
+from helper import modify_train_y
 
 class Net:
     def __init__(self, alpha):
@@ -27,7 +28,7 @@ class Net:
         return sum/len(y)
 
     def softmax_grad(self, y, teaching_data):
-        return -1*max(y)-max(teaching_data)
+        return -1*(y-teaching_data)
 
     def forward(self, input_vector):
         inputs = input_vector
@@ -36,12 +37,25 @@ class Net:
             inputs = layer.get_a(z)
         return inputs
 
-    def teach_me(self, input_vector, output_vector):
+    def sample(self, input_vector, output_vector, m):
         inputs = input_vector
         for layer in self.layers:
             z = layer.count_z(inputs)
             inputs = layer.get_a(z)
-
-        cost = self.softmax_grad(inputs, output_vector) 
+        print(self.loss(inputs, output_vector))
+        cost = self.softmax_grad(inputs, output_vector)*self.layers[len(self.layers)-1].a.T
+        id=0
         for layer in reversed(self.layers):
-            cost = layer.get_cost(cost)
+            if id!=0:
+                cost = layer.get_cost(cost)
+                layer.upadte_weights(self.alpha, m)
+
+    def teach_me(self, learning_data):
+        for i in range(100):
+            for k in range(len(learning_data[0])):
+                x = np.ndarray.flatten(learning_data[0][k])
+                self.sample(x, modify_train_y(learning_data[1][k]), len(learning_data))
+
+
+
+

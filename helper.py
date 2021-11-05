@@ -66,3 +66,10 @@ def relu_vec(z, derivative=False):
 
 def softmax(x):
     return numpy.exp(x) / numpy.sum(numpy.exp(x))
+
+
+def modify_train_y(y):
+    res = numpy.empty(10)
+    res.fill(0)
+    res[y] = 1
+    return res
