@@ -18,7 +18,7 @@ HIDDEN_LAYERS_CONFIG = [
     },
     {
         "l": 4,
-        "activationFun": tanh_vec,
+        "activationFun": None,
     },
 ]
 
@@ -28,9 +28,9 @@ def run():
 
     (train_X, train_y), (test_X, test_Y) = getData()
     train_Y_binary = np_utils.to_categorical(train_y)
-    net.teach_me((train_X, train_Y_binary))
+    net.teach_me((train_X/255, train_Y_binary))
 
-    net.test_mlp(test_X[0:10], np_utils.to_categorical(test_Y[0:10]))
+    net.test_mlp(test_X[0:10]/255, np_utils.to_categorical(test_Y[0:10]))
 
 
 

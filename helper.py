@@ -19,6 +19,7 @@ def sig_derivative(z):
 
 def sig_vec(z, derivative=False):
     fun = sig
+    z = numpy.array(z)
     if derivative:
         fun = sig_derivative
     for i in range(len(z)):
