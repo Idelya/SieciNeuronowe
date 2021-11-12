@@ -14,7 +14,7 @@ def sig(z):
 
 
 def sig_derivative(z):
-    return (numpy.power(numpy.e, z))/(numpy.power((numpy.power(numpy.e, z) + 1), 2))
+    return sig(z)*(1-sig(z))
 
 
 def sig_vec(z, derivative=False):

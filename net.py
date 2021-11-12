@@ -1,5 +1,5 @@
 import copy
-
+import pickle
 import numpy as np
 
 from Layer import Layer
@@ -7,10 +7,12 @@ from Layer import Layer
 from helper import modify_train_y
 
 class Net:
-    def __init__(self, alpha, epok=10):
+    def __init__(self, alpha, epok=10, batch=30):
         self.layers = []
         self.alpha = alpha
         self.epok = epok
+        self.batch = batch
+
 
     def configLayers(self, vector_length, config_layer, start_fun, exit_fun, class_amount):
         self.layers.append(Layer(vector_length, config_layer[0]["l"], start_fun))
@@ -23,15 +25,15 @@ class Net:
             self.layers.append(Layer(config_layer[i]["l"], outputs_length, activation_fun))
 
     def loss(self, y, teaching_data):
-        return -np.mean(teaching_data * np.log(y.T + 1e-8))
+        return np.mean(teaching_data.T * -1*np.log(y + 1e-8))
 
     def softmax_grad(self, y, teaching_data):
         data_as_vec = np.array([teaching_data])
-        diff = y.T-data_as_vec
+        diff = data_as_vec.T-y
         return -1*diff
 
     def forward(self, input_vector):
-        inputs = input_vector
+        inputs = np.array([input_vector]).T
         for layer in self.layers:
             z = layer.count_z(inputs)
             inputs = layer.get_a(z)
@@ -51,40 +53,57 @@ class Net:
         #print("grad softmax ")
         #print(self.softmax_grad(inputs, output_vector))
         error = self.softmax_grad(inputs, output_vector)
+        self.layers[-1].errors.append(copy.deepcopy(error))
         #print("error")
         #print(error)
         #print("aktualizacja wag (prev_a)")
         #print(self.layers[-1].prev_a)
-        arr_errors = []
-        arr_errors.append(copy.deepcopy(error))
         id=0
         for layer in reversed(self.layers):
             if id > 0:
                 #print(self.layers[-id].weights.T)
-                error = np.dot(self.layers[-id].weights.T, error.T).T
-                arr_errors.append(copy.deepcopy(error))
+                actvity = layer.activity_fun(layer.z, derivative=True)
+                error = np.dot(self.layers[-id].weights.T, error)*actvity
+                self.layers[-id-1].errors.append(copy.deepcopy(error))
             id = id + 1
-        id=0
-        self.layers[-1].weights -= self.alpha * arr_errors[0].T.dot(self.layers[-1].prev_a.T)#aktualizacja dla W3 - do sparwdzenia kolejnośc mnożenia
-        self.layers[-1].bias -= self.alpha * arr_errors[0]
-        print(self.layers[-3].weights)
-        for layer in reversed(self.layers):
-            if id > 0:
-                error = arr_errors[id]
-                actvity = layer.activity_fun(layer.prev_a, derivative=True)
-                self.layers[-id-1].weights -= self.alpha * error.T.dot(actvity.T)
-                self.layers[-id-1].bias -= self.alpha * error
-            id = id + 1
-        return sum_loss
+        if np.argmax(inputs) == np.argmax(output_vector.T):
+            return 1
+        return 0
 
-    def teach_me(self, learning_data):
+    def update_wieghts(self):
+        id=1
+        for layer in reversed(self.layers):
+            weights_sum = np.zeros(shape=layer.weights.shape)
+            for x in range(self.batch):
+                weights_sum += np.dot(layer.errors[x], layer.outputs[x].T)
+            layer.weights -= self.alpha/self.batch * weights_sum
+
+            bias_sum = np.zeros(shape=layer.bias.shape)
+            for x in range(self.batch):
+                bias_sum += layer.errors[x]
+            layer.bias -= self.alpha/self.batch * bias_sum #TOCHECK
+            layer.errors=[]
+            layer.outputs=[]
+            id +=1
+
+    def teach_me(self, learning_data, test_data):
+        max_accuracy = 0
         for i in range(self.epok):
             sum_loss = 0
-            for k in range(len(learning_data[0])):
+            id_of_x_in_pack = 1
+            for k in range(len(learning_data[0])): #dla wszystkich wzorców
                 x = np.ndarray.flatten(learning_data[0][k])
                 sum_loss += self.sample(x, learning_data[1][k], len(learning_data))
+                if id_of_x_in_pack == self.batch:
+                    self.update_wieghts()
+                    id_of_x_in_pack = 0
+                id_of_x_in_pack +=1
+            if sum_loss > max_accuracy:
+                max_accuracy = sum_loss
+                self.save_layer()
 
-            #print(i, sum_loss/len(learning_data[0]))
+            print(i, sum_loss/len(learning_data[0]))
+            self.test_mlp(test_data[0], test_data[1])
 
     def test_mlp(self, test_data_X, test_data_Y):
         correct=0
@@ -94,7 +113,15 @@ class Net:
             #print(self.forward(x), test_data_Y[i])
             if np.argmax(predict) == np.argmax(test_data_Y[i]):
                 correct = correct + 1
-        #print(correct/len(test_data_Y))
+        print(correct/len(test_data_Y))
+
+    def save_layer(self):
+        with open('layers.pkl', 'wb') as outp:
+            pickle.dump(self.layers, outp, pickle.HIGHEST_PROTOCOL)
+
+    def layers_from_file(self):
+        with open('company_data.pkl', 'rb') as inp:
+            self.layers = pickle.load(inp)
 
 
 def mse(res, y):

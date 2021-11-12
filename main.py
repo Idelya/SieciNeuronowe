@@ -13,25 +13,29 @@ learnig_data = [
 
 HIDDEN_LAYERS_CONFIG = [
     {
-        "l": 3,
-        "activationFun": sig_vec,
-    },
-    {
-        "l": 4,
+        "l": 10,
         "activationFun": None,
     },
 ]
 
 def run():
-    net = Net(0.1, epok=20)#alfa
-    net.configLayers(784, HIDDEN_LAYERS_CONFIG, relu_vec, softmax, 10)
+    for i in range(10):
+        print("=====================================")
+        print(i)
+        print("=====================================")
+        net = Net(0.001, epok=10, batch=20)#alfa
+        net.configLayers(784, HIDDEN_LAYERS_CONFIG, relu_vec, softmax, 10)
 
-    (train_X, train_y), (test_X, test_Y) = getData()
-    train_Y_binary = np_utils.to_categorical(train_y)
-    net.teach_me((train_X/255, train_Y_binary))
+        (train_X, train_y), (test_X, test_Y) = getData()
+        train_Y_binary = np_utils.to_categorical(train_y)
+        net.teach_me((train_X/255, train_Y_binary), (test_X/255, np_utils.to_categorical(test_Y)))
 
-    net.test_mlp(test_X[0:10]/255, np_utils.to_categorical(test_Y[0:10]))
-
+        #net2 = Net(0.01, epok=100, batch=1)#alfa
+        #X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        #y = np.array([[1, 0], [0, 1], [0, 1], [0, 1]])
+        #net2.configLayers(2, HIDDEN_LAYERS_CONFIG, tanh_vec, softmax, 2)
+        #data = (X, y)
+        #net2.teach_me(data, data)
 
 
 if __name__ == '__main__':
