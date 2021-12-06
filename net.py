@@ -17,8 +17,12 @@ class Net:
         self.method_config = {}
         self.t = 0
 
-        self.xAxis = []
-        self.yAxis = []
+        self.x_axis = []
+        self.y_axis = []
+        self.x_acc_t_axis = []
+        self.y_acc_t_axis = []
+        self.x_acc_v_axis = []
+        self.y_acc_v_axis = []
 
     def optimalizationOfAlpha(self, config):
         self.with_optimalization = True
@@ -28,15 +32,15 @@ class Net:
                 self.method_config["last_update"].append(np.zeros(shape=layer.weights.shape))
                 self.method_config["last_update_bias"].append(np.zeros(shape=layer.bias.shape))
 
-    def configLayers(self, vector_length, config_layer, start_fun, exit_fun, class_amount):
-        self.layers.append(Layer(vector_length, config_layer[0]["l"], start_fun))
+    def configLayers(self, vector_length, config_layer, start_fun, exit_fun, class_amount, init_weight_method):
+        self.layers.append(Layer(vector_length, config_layer[0]["l"], start_fun, init_weight_method))
         for i in range(len(config_layer)):
             outputs_length = class_amount
             activation_fun = exit_fun
             if i + 1 < len(config_layer):
                 outputs_length = config_layer[i + 1]["l"]
                 activation_fun = config_layer[i]["activationFun"]
-            self.layers.append(Layer(config_layer[i]["l"], outputs_length, activation_fun))
+            self.layers.append(Layer(config_layer[i]["l"], outputs_length, activation_fun, init_weight_method))
 
     def loss(self, y, teaching_data):
         return 1 - np.mean(-1 * np.log(y + 1e-8) * teaching_data.T)
@@ -81,8 +85,7 @@ class Net:
                 # ================== momentum ===============
                 if self.with_optimalization and self.method_config["name"] == "momentum_nesterova":
                     error = np.dot(
-                        self.layers[-id].weights.T - self.method_config["factor"] * self.method_config["last_update"][
-                            -id], error) * actvity
+                        (self.layers[-id].weights - self.method_config["factor"] * self.method_config["last_update"][-id]).T, error) * actvity
                 else:
                     error = np.dot(self.layers[-id].weights.T, error) * actvity
                 self.layers[-id - 1].errors.append(copy.deepcopy(error))
@@ -112,7 +115,7 @@ class Net:
             # ================== adadelta   ===============
             elif self.with_optimalization and self.method_config["name"] == "adadelta":
                 layer.E_grad = self.method_config["factor"]*layer.E_grad + (1 - self.method_config["factor"])*(weights_sum ** 2)
-                delta = -1*(np.sqrt(layer.E_theta + 1e-8)/np.sqrt(layer.E_grad + 1e-8))*weights_sum
+                delta = (-1*(np.sqrt(layer.E_theta + 1e-8)/np.sqrt(layer.E_grad + 1e-8))*weights_sum)
                 layer.E_theta = self.method_config["factor"]*layer.E_theta + (1 - self.method_config["factor"])*(delta ** 2)
                 layer.weights += delta
             # ================== adam       ===============
@@ -122,9 +125,9 @@ class Net:
                 corrected_m = layer.m / (1. - self.method_config["beta1"] ** (self.t+1))
                 corrected_v = layer.v / (1. - self.method_config["beta2"] ** (self.t+1))
                 diff = (self.alpha * corrected_m) / (np.sqrt(corrected_v) + 1e-8)
-                layer.weights -= diff
+                layer.weights -= diff/self.batch
             else:
-                layer.weights -= self.alpha / self.batch * weights_sum
+                layer.weights -= self.alpha/self.batch * weights_sum
 
             bias_sum = np.zeros(shape=layer.bias.shape)
             for x in range(self.batch):
@@ -145,7 +148,7 @@ class Net:
             # ================== adadelta   ===============
             elif self.with_optimalization and self.method_config["name"] == "adadelta":
                 layer.E_grad_b = self.method_config["factor"]*layer.E_grad_b + (1 - self.method_config["factor"])*(bias_sum ** 2)
-                delta = -1*(np.sqrt(layer.E_theta_b + 1e-8)/np.sqrt(layer.E_grad_b + 1e-8))*bias_sum
+                delta = (-1*(np.sqrt(layer.E_theta_b + 1e-8)/np.sqrt(layer.E_grad_b + 1e-8))*bias_sum)
                 layer.E_theta_b = self.method_config["factor"]*layer.E_theta_b + (1 - self.method_config["factor"])*(delta ** 2)
                 layer.bias += delta
             # ================== adam   ===============
@@ -155,7 +158,7 @@ class Net:
                 corrected_m = layer.m_b / (1. - self.method_config["beta1"] ** (self.t+1))
                 corrected_v = layer.v_b / (1. - self.method_config["beta2"] ** (self.t+1))
                 diff = (self.alpha * corrected_m) / (np.sqrt(corrected_v) + 1e-8)
-                layer.bias -= diff
+                layer.bias -= diff/ self.batch
             else:
                 layer.bias -= self.alpha / self.batch * bias_sum  # TOCHECK
             layer.errors = []
@@ -173,7 +176,7 @@ class Net:
                 x = np.ndarray.flatten(learning_data[0][k])
                 res = self.sample(x, learning_data[1][k], len(learning_data))
                 accuracy = accuracy + res[0]
-                sum_loss = sum_loss + res[1]
+                sum_loss = sum_loss + max(0, res[1])
                 if id_of_x_in_pack == self.batch:
                     self.update_wieghts()
                     id_of_x_in_pack = 0
@@ -182,10 +185,14 @@ class Net:
                 max_accuracy = accuracy
                 self.save_layer()
 
-            self.xAxis.append(i)
-            self.yAxis.append(sum_loss / len(learning_data[0]))
+            self.x_axis.append(i)
+            self.y_axis.append(sum_loss / len(learning_data[0]))
             print(i, sum_loss / len(learning_data[0]))
             print(i, accuracy / len(learning_data[0]))
+            self.x_acc_v_axis.append(i)
+            self.y_acc_v_axis.append(accuracy / len(learning_data[0]))
+
+            self.x_acc_t_axis.append(i)
             self.test_mlp(test_data[0], test_data[1])
 
     def test_mlp(self, test_data_X, test_data_Y):
@@ -196,6 +203,7 @@ class Net:
             # print(self.forward(x), test_data_Y[i])
             if np.argmax(predict) == np.argmax(test_data_Y[i]):
                 correct = correct + 1
+        self.y_acc_t_axis.append(correct / len(test_data_Y))
         print(correct / len(test_data_Y))
 
     def save_layer(self):
